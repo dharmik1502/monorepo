@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+:root {
+  --font-inter: "Inter", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  background: #0f0a1e;
+  color: #f1f0f7;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, #0f0a1e 0%, #1a0f3c 40%, #0f1a2e 100%);
+}
+
+.hero-glow {
+  background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(139, 92, 246, 0.3), transparent);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #a78bfa, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #6d28d9, #be185d);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px rgba(124, 58, 237, 0.4);
+}
+
+.tab-active {
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  color: white;
+}
+
+.feature-icon-bg {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(219, 39, 119, 0.2));
+  border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+.step-number {
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+}
+
+.input-field {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: rgba(124, 58, 237, 0.6);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+.divider-glow {
+  background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.5), rgba(219, 39, 119, 0.5), transparent);
+}

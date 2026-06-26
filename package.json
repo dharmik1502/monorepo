@@ -1,0 +1,24 @@
+{
+  "name": "social-downloader-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo: Next.js frontend + NestJS backend for social media downloader",
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend"
+  ],
+  "scripts": {
+    "dev": "concurrently --names \"FRONTEND,BACKEND\" --prefix-colors \"cyan,magenta\" \"npm run dev --workspace=apps/frontend\" \"npm run start:dev --workspace=apps/backend\"",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "dev:backend": "npm run start:dev --workspace=apps/backend",
+    "build": "npm run build --workspace=apps/backend && npm run build --workspace=apps/frontend",
+    "build:frontend": "npm run build --workspace=apps/frontend",
+    "build:backend": "npm run build --workspace=apps/backend",
+    "start": "concurrently --names \"FRONTEND,BACKEND\" --prefix-colors \"cyan,magenta\" \"npm run start --workspace=apps/frontend\" \"npm run start:prod --workspace=apps/backend\"",
+    "lint": "npm run lint --workspace=apps/frontend && npm run lint --workspace=apps/backend",
+    "install:all": "npm install && npm install --workspace=apps/frontend && npm install --workspace=apps/backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference — Social Downloader</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #1a1a2e;
+      background: #fff;
+      padding: 40px 48px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ── Cover ── */
+    .cover {
+      border-bottom: 3px solid #FF6B35;
+      padding-bottom: 24px;
+      margin-bottom: 36px;
+    }
+
+    .cover-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #FF6B35;
+      margin-bottom: 6px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .cover-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #0C0E1A;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .cover-sub {
+      font-size: 13px;
+      color: #6b6e85;
+    }
+
+    .endpoint-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: #f5f6fa;
+      border-radius: 6px;
+      border-left: 3px solid #FF6B35;
+    }
+
+    .method-pill {
+      background: #FF6B35;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .endpoint-text {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: #0C0E1A;
+    }
+
+    /* ── Sections ── */
+    .section {
+      margin-bottom: 36px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1.5px solid #e8e9f0;
+    }
+
+    .section-num {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: #FF6B35;
+      letter-spacing: 0.08em;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0C0E1A;
+    }
+
+    .body-text {
+      font-size: 13px;
+      color: #4a4d60;
+      margin-bottom: 14px;
+      line-height: 1.7;
+    }
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin-bottom: 16px;
+    }
+
+    thead th {
+      background: #f0f1f8;
+      text-align: left;
+      padding: 8px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #6b6e85;
+      border: 1px solid #e0e2ef;
+    }
+
+    tbody td {
+      padding: 10px;
+      border: 1px solid #e0e2ef;
+      vertical-align: top;
+    }
+
+    tbody tr:nth-child(even) td { background: #fafbff; }
+
+    .p-name {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+
+    .p-type {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #6d28d9;
+    }
+
+    .p-req {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: #FF6B35;
+      white-space: nowrap;
+    }
+
+    .p-opt {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: #9ca3af;
+    }
+
+    .p-desc { color: #4a4d60; line-height: 1.5; }
+
+    .p-note {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 3px;
+    }
+
+    /* ── Code blocks ── */
+    .code-block {
+      background: #1a1c2e;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      border: 1px solid #2e3150;
+    }
+
+    .code-label {
+      background: #252840;
+      padding: 6px 14px;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #818cf8;
+      border-bottom: 1px solid #2e3150;
+    }
+
+    .code-block pre {
+      padding: 14px 16px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #e2e4ef;
+    }
+
+    /* Syntax colors for dark blocks */
+    .t-key    { color: #93c5fd; }
+    .t-str    { color: #86efac; }
+    .t-num    { color: #fca5a5; }
+    .t-bool   { color: #c084fc; }
+    .t-null   { color: #6b7280; }
+    .t-kw     { color: #FF6B35; }
+    .t-fn     { color: #fde68a; }
+    .t-cm     { color: #3d4163; font-style: italic; }
+    .t-hdr    { color: #818cf8; }
+    .t-op     { color: #6b7280; }
+
+    /* ── Status badges ── */
+    .status-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid #e0e2ef;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .sc {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .sc-200 { background: #d1fae5; color: #065f46; }
+    .sc-400 { background: #fee2e2; color: #991b1b; }
+    .sc-429 { background: #fef3c7; color: #92400e; }
+    .sc-401 { background: #ede9fe; color: #4c1d95; }
+
+    .status-desc { font-size: 12.5px; color: #4a4d60; line-height: 1.5; }
+
+    /* ── Chips ── */
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .chip {
+      padding: 4px 12px;
+      background: #f0f1f8;
+      border: 1px solid #d4d6e8;
+      border-radius: 16px;
+      font-size: 12px;
+      color: #4a4d60;
+    }
+
+    /* ── Rate card ── */
+    .rate-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 20px;
+      background: #fff8f5;
+      border: 1.5px solid #ffd5c4;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+
+    .rate-big {
+      font-family: 'Courier New', monospace;
+      font-size: 32px;
+      font-weight: 700;
+      color: #FF6B35;
+      line-height: 1;
+    }
+
+    .rate-label { font-size: 13px; color: #4a4d60; font-weight: 600; }
+    .rate-sub   { font-size: 11px; color: #9ca3af; font-family: 'Courier New', monospace; }
+
+    /* ── Callout ── */
+    .callout {
+      padding: 12px 14px;
+      border-radius: 6px;
+      margin-bottom: 14px;
+      font-size: 12.5px;
+      line-height: 1.6;
+    }
+
+    .callout-info { background: #eef2ff; border-left: 3px solid #818cf8; color: #3730a3; }
+    .callout-warn { background: #fffbeb; border-left: 3px solid #f59e0b; color: #78350f; }
+
+    code {
+      font-family: 'Courier New', monospace;
+      font-size: 11.5px;
+      background: #f0f1f8;
+      padding: 1px 5px;
+      border-radius: 3px;
+      color: #1d4ed8;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid #e8e9f0;
+      font-size: 11px;
+      color: #9ca3af;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ── Print styles ── */
+    @media print {
+      body { padding: 20px 28px; font-size: 11px; }
+      .cover-title { font-size: 22px; }
+      .section { page-break-inside: avoid; margin-bottom: 24px; }
+      .code-block { page-break-inside: avoid; }
+      .status-row { page-break-inside: avoid; }
+      table { page-break-inside: avoid; font-size: 11px; }
+      .cover { margin-bottom: 24px; }
+      @page { margin: 16mm 14mm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover -->
+  <div class="cover">
+    <div class="cover-tag">Backend Integration · REST API</div>
+    <div class="cover-title">Social Downloader — API Reference</div>
+    <div class="cover-sub">For frontend developers · Version 1.0</div>
+    <div class="endpoint-row">
+      <span class="method-pill">POST</span>
+      <span class="endpoint-text">/api/v1/download</span>
+    </div>
+  </div>
+
+  <!-- 1. Overview -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <span class="section-title">Overview</span>
+    </div>
+    <p class="body-text">
+      Single endpoint. Send the social media post URL, receive direct download links — video, image, or audio.
+      Authentication is optional; unauthenticated requests work but share a rate limit.
+    </p>
+    <div class="callout callout-info">
+      All requests and responses use <strong>JSON</strong>. Base URL in production is your Vercel domain.
+      In local dev: <code>http://localhost:3000</code>.
+    </div>
+  </div>
+
+  <!-- 2. Headers -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <span class="section-title">Request Headers</span>
+    </div>
+    <p class="body-text">Two headers — one always required, one only when the user is logged in.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Header</th>
+          <th>Value</th>
+          <th>When</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="p-name">Content-Type</span></td>
+          <td><span class="p-type">application/json</span></td>
+          <td><span class="p-req">Required</span></td>
+          <td class="p-desc">Must be set on every request. Without it the server cannot parse the body.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="code-block">
+      <div class="code-label">Headers</div>
+      <pre><span class="t-hdr">Content-Type</span><span class="t-op">:</span> <span class="t-str">application/json</span></pre>
+    </div>
+  </div>
+
+  <!-- 3. Request Body -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <span class="section-title">Request Body</span>
+    </div>
+    <p class="body-text">Send a JSON object. Only <code>url</code> is required.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Type</th>
+          <th></th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="p-name">url</span></td>
+          <td><span class="p-type">string</span></td>
+          <td><span class="p-req">Required</span></td>
+          <td class="p-desc">
+            Full URL of the social media post including <code>https://</code>.
+            <div class="p-note">Supported: Instagram, Facebook, Twitter/X, TikTok, Pinterest</div>
+          </td>
+        </tr>
+        <tr>
+          <td><span class="p-name">quality</span></td>
+          <td><span class="p-type">"hd" | "sd"</span></td>
+          <td><span class="p-opt">Optional</span></td>
+          <td class="p-desc">
+            Preferred quality. If unavailable, server returns the best it has.
+            <div class="p-note">Default: best available</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="code-block">
+      <div class="code-label">Request body — JSON</div>
+      <pre><span class="t-op">{</span>
+  <span class="t-key">"url"</span><span class="t-op">:</span>     <span class="t-str">"https://www.instagram.com/p/ABC123/"</span><span class="t-op">,</span>
+  <span class="t-key">"quality"</span><span class="t-op">:</span> <span class="t-str">"hd"</span>   <span class="t-cm">// optional</span>
+<span class="t-op">}</span></pre>
+    </div>
+  </div>
+
+  <!-- 4. Response -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <span class="section-title">Response Shape</span>
+    </div>
+    <p class="body-text">
+      HTTP <code>200</code> always. Check <code>success</code> first — even when media extraction fails the status is 200,
+      so a <code>false</code> here means no download links were found.
+    </p>
+    <div class="code-block">
+      <div class="code-label">Response — success: true</div>
+      <pre><span class="t-op">{</span>
+  <span class="t-key">"success"</span><span class="t-op">:</span>  <span class="t-bool">true</span><span class="t-op">,</span>
+
+  <span class="t-key">"metadata"</span><span class="t-op">: {</span>
+    <span class="t-key">"platform"</span><span class="t-op">:</span>    <span class="t-str">"instagram"</span><span class="t-op">,</span>
+    <span class="t-key">"title"</span><span class="t-op">:</span>       <span class="t-str">"Sunset at the beach"</span><span class="t-op">,</span>
+    <span class="t-key">"description"</span><span class="t-op">:</span> <span class="t-str">"Golden hour vibes..."</span><span class="t-op">,</span>
+    <span class="t-key">"thumbnail"</span><span class="t-op">:</span>   <span class="t-str">"https://cdn.instagram.com/thumb.jpg"</span><span class="t-op">,</span>
+    <span class="t-key">"author"</span><span class="t-op">:</span>      <span class="t-str">"@username"</span><span class="t-op">,</span>
+    <span class="t-key">"duration"</span><span class="t-op">:</span>    <span class="t-num">42</span>   <span class="t-cm">// seconds; null for images</span>
+  <span class="t-op">},</span>
+
+  <span class="t-key">"urls"</span><span class="t-op">: [</span>
+    <span class="t-op">{</span>
+      <span class="t-key">"url"</span><span class="t-op">:</span>        <span class="t-str">"https://cdn.instagram.com/video.mp4"</span><span class="t-op">,</span>
+      <span class="t-key">"quality"</span><span class="t-op">:</span>   <span class="t-str">"hd"</span><span class="t-op">,</span>
+      <span class="t-key">"type"</span><span class="t-op">:</span>      <span class="t-str">"video"</span><span class="t-op">,</span>   <span class="t-cm">// "video" | "image" | "audio"</span>
+      <span class="t-key">"extension"</span><span class="t-op">:</span> <span class="t-str">"mp4"</span><span class="t-op">,</span>
+      <span class="t-key">"size"</span><span class="t-op">:</span>      <span class="t-num">4194304</span>   <span class="t-cm">// bytes; may be null</span>
+    <span class="t-op">}</span>
+  <span class="t-op">]</span>
+<span class="t-op">}</span></pre>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Field in urls[]</th><th>Type</th><th>Always present</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="p-name">url</span></td>
+          <td><span class="p-type">string</span></td>
+          <td><span class="p-req">Yes</span></td>
+          <td class="p-desc">Direct download link. These expire — download or proxy promptly.</td>
+        </tr>
+        <tr>
+          <td><span class="p-name">type</span></td>
+          <td><span class="p-type">"video" | "image" | "audio"</span></td>
+          <td><span class="p-req">Yes</span></td>
+          <td class="p-desc">Use this to decide whether to render a video player or an image tag.</td>
+        </tr>
+        <tr>
+          <td><span class="p-name">quality</span></td>
+          <td><span class="p-type">string</span></td>
+          <td><span class="p-opt">No</span></td>
+          <td class="p-desc">e.g. <code>"hd"</code>, <code>"sd"</code>, <code>"1080p"</code>. Null for images.</td>
+        </tr>
+        <tr>
+          <td><span class="p-name">extension</span></td>
+          <td><span class="p-type">string</span></td>
+          <td><span class="p-opt">No</span></td>
+          <td class="p-desc">File extension without dot — <code>mp4</code>, <code>jpg</code>, <code>mp3</code>.</td>
+        </tr>
+        <tr>
+          <td><span class="p-name">size</span></td>
+          <td><span class="p-type">number</span></td>
+          <td><span class="p-opt">No</span></td>
+          <td class="p-desc">File size in bytes. Check for null before displaying.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 5. Code Examples -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">05</span>
+      <span class="section-title">Code Examples</span>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">JavaScript — fetch()</div>
+      <pre><span class="t-kw">const</span> <span class="t-fn">download</span> = <span class="t-kw">async</span> (url) => {
+  <span class="t-kw">const</span> headers = { <span class="t-str">'Content-Type'</span>: <span class="t-str">'application/json'</span> };
+
+  <span class="t-kw">const</span> res = <span class="t-kw">await</span> <span class="t-fn">fetch</span>(<span class="t-str">'/api/v1/download'</span>, {
+    method: <span class="t-str">'POST'</span>,
+    headers,
+    body: <span class="t-fn">JSON.stringify</span>({ url }),
+  });
+
+  <span class="t-kw">if</span> (!res.ok) <span class="t-kw">throw new</span> <span class="t-fn">Error</span>(<span class="t-str">`HTTP ${res.status}`</span>);
+
+  <span class="t-kw">const</span> data = <span class="t-kw">await</span> res.<span class="t-fn">json</span>();
+  <span class="t-kw">if</span> (!data.success) <span class="t-kw">throw new</span> <span class="t-fn">Error</span>(<span class="t-str">'No media found'</span>);
+
+  <span class="t-kw">return</span> data.urls;  <span class="t-cm">// array of download items</span>
+};</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">JavaScript — axios</div>
+      <pre><span class="t-kw">import</span> axios <span class="t-kw">from</span> <span class="t-str">'axios'</span>;
+
+<span class="t-kw">const</span> <span class="t-fn">download</span> = <span class="t-kw">async</span> (url) => {
+  <span class="t-kw">const</span> { data } = <span class="t-kw">await</span> axios.<span class="t-fn">post</span>(<span class="t-str">'/api/v1/download'</span>, { url }, {
+    headers: { <span class="t-str">'Content-Type'</span>: <span class="t-str">'application/json'</span> },
+  });
+
+  <span class="t-kw">if</span> (!data.success) <span class="t-kw">throw new</span> <span class="t-fn">Error</span>(<span class="t-str">'No media found'</span>);
+
+  <span class="t-kw">return</span> data.urls;
+};</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-label">cURL</div>
+      <pre><span class="t-fn">curl</span> -X POST https://your-domain.vercel.app/api/v1/download \
+  -H <span class="t-str">"Content-Type: application/json"</span> \
+  -d <span class="t-str">'{"url": "https://www.tiktok.com/@user/video/123"}'</span></pre>
+    </div>
+  </div>
+
+  <!-- 6. Errors -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">06</span>
+      <span class="section-title">Error Responses</span>
+    </div>
+    <p class="body-text">
+      Non-2xx means the server rejected the request. Different from <code>success: false</code> (which is a 200 with no media found).
+    </p>
+
+    <div class="status-row">
+      <span class="sc sc-400">400</span>
+      <div>
+        <div class="status-desc"><strong>Bad Request</strong> — URL from an unsupported platform, or missing/invalid <code>url</code> field.</div>
+        <div class="p-note" style="margin-top:5px; font-family:'Courier New',monospace; font-size:11px; color:#6b7280;">
+          {"statusCode": 400, "message": "Unsupported platform. Supported: Instagram, Facebook, Twitter/X, TikTok, Pinterest."}
+        </div>
+      </div>
+    </div>
+
+    <div class="status-row">
+      <span class="sc sc-429">429</span>
+      <div>
+        <div class="status-desc"><strong>Too Many Requests</strong> — 10 requests/minute limit exceeded. Wait 60 seconds and retry.</div>
+        <div class="p-note" style="margin-top:5px; font-family:'Courier New',monospace; font-size:11px; color:#6b7280;">
+          {"statusCode": 429, "message": "ThrottlerException: Too Many Requests"}
+        </div>
+      </div>
+    </div>
+
+    <div class="status-row">
+      <span class="sc sc-401">401</span>
+      <div>
+        <div class="status-desc"><strong>Unauthorized</strong> — Authorization header present but token is invalid or expired.</div>
+        <div class="p-note" style="margin-top:5px; font-family:'Courier New',monospace; font-size:11px; color:#6b7280;">
+          {"statusCode": 401, "message": "Unauthorized"}
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-warn" style="margin-top:6px;">
+      <strong>Note:</strong> A <code>200</code> with <code>"success": false</code> is NOT an error — the server worked but could not extract media from that URL.
+      Show the user a friendly "No media found" message and let them try a different link.
+    </div>
+  </div>
+
+  <!-- 7. Platforms -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">07</span>
+      <span class="section-title">Supported Platforms</span>
+    </div>
+    <p class="body-text">Any URL not matching these returns <code>400</code>. Validation happens before any network call.</p>
+    <div class="chips">
+      <span class="chip">Instagram</span>
+      <span class="chip">Facebook</span>
+      <span class="chip">Twitter / X</span>
+      <span class="chip">TikTok</span>
+      <span class="chip">Pinterest</span>
+    </div>
+  </div>
+
+  <!-- 8. Rate Limit -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">08</span>
+      <span class="section-title">Rate Limiting</span>
+    </div>
+    <div class="rate-card">
+      <div class="rate-big">10</div>
+      <div>
+        <div class="rate-label">requests per minute</div>
+        <div class="rate-sub">per IP address</div>
+      </div>
+    </div>
+    <p class="body-text" style="margin-top:12px;">
+      Hitting the limit returns <code>429</code>. The window resets after 60 seconds.
+      If your UI lets users submit multiple links at once, queue them client-side to avoid hitting the limit.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Social Downloader · API v1</span>
+    <span>Generated 2026-06-19</span>
+  </div>
+
+</body>
+</html>
