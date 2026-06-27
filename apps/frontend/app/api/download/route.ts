@@ -48,8 +48,8 @@ function selectDownloadsByQuality(downloads: DownloadItem[], quality?: string | 
     (item) =>
       item.quality.toLowerCase().includes(normalized) ||
       item.format.toLowerCase() === normalized ||
-      normalized === "hd" && item.quality.toLowerCase().includes("hd") ||
-      normalized === "sd" && item.quality.toLowerCase().includes("sd")
+      (normalized === "hd" && item.quality.toLowerCase().includes("hd")) ||
+      (normalized === "sd" && item.quality.toLowerCase().includes("sd"))
   );
   return containsMatches.length ? containsMatches : downloads;
 }
@@ -64,7 +64,11 @@ function detectPlatform(url: string): PlatformInfo | null {
     const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
     const path = parsed.pathname.toLowerCase();
 
-    const normalizedHost = host === "instagram.com" || host === "instagr.am" || host.endsWith(".instagram.com") ? "instagram.com" : host;
+    const normalizedHost =
+      host === "instagram.com" || host === "instagr.am" || host.endsWith(".instagram.com")
+        ? "instagram.com"
+        : host;
+
     if (normalizedHost === "instagram.com" || normalizedHost === "instagr.am") {
       if (/\/(reel|reels)\//.test(path)) return { platform: "instagram", type: "reel" };
       if (/\/p\//.test(path)) return { platform: "instagram", type: "post" };
@@ -92,7 +96,6 @@ function detectPlatform(url: string): PlatformInfo | null {
       return { platform: "twitter", type: "post" };
     }
     if (["pinterest.com", "pin.it"].includes(host)) {
-      if (/\/pin\//.test(path)) return { platform: "pinterest", type: "pin" };
       return { platform: "pinterest", type: "pin" };
     }
     return null;
@@ -114,7 +117,6 @@ async function apiFetch(url: string, options: RequestInit = {}): Promise<Respons
 }
 
 // ─── Provider: social-media-video-downloader (RapidAPI) ──────────────────────
-// Handles Instagram, Facebook, TikTok, YouTube, Twitter, Pinterest
 
 async function trySocialDownloader(url: string): Promise<MediaResult | null> {
   if (!RAPIDAPI_KEY) return null;
@@ -129,12 +131,12 @@ async function trySocialDownloader(url: string): Promise<MediaResult | null> {
       }
     );
     if (!res.ok) return null;
-    const d = await res.json();
+    const d = await res.json() as { success?: boolean; links?: { quality: string; link: string }[]; title?: string; picture?: string };
     if (!d?.success || !d.links?.length) return null;
     return {
       title: d.title || "Social Media Content",
       thumbnail: d.picture || null,
-      downloads: d.links.map((l: { quality: string; link: string }) => ({
+      downloads: d.links.map((l) => ({
         quality: l.quality || "HD",
         url: l.link,
         format: l.link.includes(".mp3") ? "mp3" : "mp4",
@@ -161,7 +163,12 @@ async function tryInstagramRapid(url: string): Promise<MediaResult | null> {
       }
     );
     if (!res.ok) return null;
-    const d = await res.json();
+    const d = await res.json() as {
+      url?: string | string[];
+      title?: string;
+      thumbnail?: string;
+      media?: { url?: string }[];
+    };
     if (d?.url) {
       const urls: string[] = Array.isArray(d.url) ? d.url : [d.url];
       return {
@@ -178,9 +185,9 @@ async function tryInstagramRapid(url: string): Promise<MediaResult | null> {
       return {
         title: d.title || "Instagram Content",
         thumbnail: d.thumbnail || null,
-        downloads: d.media.map((m: { url?: string }, i: number) => ({
+        downloads: d.media.map((m, i) => ({
           quality: i === 0 ? "HD" : "SD",
-          url: m.url || m,
+          url: m.url || "",
           format: "mp4",
         })),
       };
@@ -190,6 +197,10 @@ async function tryInstagramRapid(url: string): Promise<MediaResult | null> {
     return null;
   }
 }
+
+// ─── instagram120 helpers ─────────────────────────────────────────────────────
+
+type Ig120Item = Record<string, unknown>;
 
 function getNestedValue(obj: unknown, path: string[]): unknown {
   let current: unknown = obj;
@@ -205,23 +216,26 @@ function getStringValue(obj: unknown, path: string[]): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function extractInstagram120Items(data: unknown): unknown[] {
+function extractInstagram120Items(data: unknown): Ig120Item[] {
   if (typeof data !== "object" || data === null) return [];
   const source = data as Record<string, unknown>;
   const nestedData = source["data"];
   const candidates = [
-    nestedData && typeof nestedData === "object" ? (nestedData as Record<string, unknown>)["reels"] : undefined,
+    nestedData && typeof nestedData === "object"
+      ? (nestedData as Record<string, unknown>)["reels"]
+      : undefined,
     source["reels"],
-    nestedData && typeof nestedData === "object" ? (nestedData as Record<string, unknown>)["posts"] : undefined,
+    nestedData && typeof nestedData === "object"
+      ? (nestedData as Record<string, unknown>)["posts"]
+      : undefined,
     source["posts"],
     source["items"],
     source["result"],
   ];
 
   for (const candidate of candidates) {
-    if (Array.isArray(candidate)) return candidate;
+    if (Array.isArray(candidate)) return candidate as Ig120Item[];
   }
-
   return [];
 }
 
@@ -244,7 +258,7 @@ function getInstagram120Username(url: string): string | null {
   }
 }
 
-function buildInstagram120Downloads(items: unknown[]): DownloadItem[] {
+function buildInstagram120Downloads(items: Ig120Item[]): DownloadItem[] {
   const downloads: DownloadItem[] = [];
   const seen = new Set<string>();
 
@@ -295,14 +309,18 @@ async function tryInstagram120Reels(username: string): Promise<MediaResult | nul
       console.warn(`[ig120-reels] HTTP ${res.status}`);
       return null;
     }
-    const d = await res.json();
+    const d: unknown = await res.json();
     const items = extractInstagram120Items(d);
-    if (!Array.isArray(items) || items.length === 0) return null;
+    if (!items.length) return null;
 
     const downloads = buildInstagram120Downloads(items);
     if (!downloads.length) return null;
 
-    const thumb = items[0]?.display_url || items[0]?.thumbnail_url || null;
+    const first = items[0];
+    const thumb =
+      (typeof first["display_url"] === "string" ? first["display_url"] : null) ??
+      (typeof first["thumbnail_url"] === "string" ? first["thumbnail_url"] : null);
+
     return {
       title: `${username} — Instagram reels`,
       thumbnail: thumb,
@@ -316,7 +334,6 @@ async function tryInstagram120Reels(username: string): Promise<MediaResult | nul
   }
 }
 
-// ─── RapidAPI: instagram120 (posts by username) ──────────────────────────────
 async function tryInstagram120(url: string, type?: string): Promise<MediaResult | null> {
   if (!RAPIDAPI_KEY) return null;
   try {
@@ -326,7 +343,8 @@ async function tryInstagram120(url: string, type?: string): Promise<MediaResult 
       if (!username) {
         const parsed = new URL(url);
         const seg = parsed.pathname.replace(/^\//, "").split("/")[0];
-        if (seg && seg !== "p" && seg !== "reel" && seg !== "reels" && seg !== "tv") username = seg;
+        if (seg && seg !== "p" && seg !== "reel" && seg !== "reels" && seg !== "tv")
+          username = seg;
       }
     } catch {
       username = typeof url === "string" ? url.split(/[\s/]/)[0] : null;
@@ -354,14 +372,18 @@ async function tryInstagram120(url: string, type?: string): Promise<MediaResult 
       return null;
     }
 
-    const d = await res.json();
+    const d: unknown = await res.json();
     const items = extractInstagram120Items(d);
-    if (!Array.isArray(items) || items.length === 0) return null;
+    if (!items.length) return null;
 
     const downloads = buildInstagram120Downloads(items);
     if (!downloads.length) return null;
 
-    const thumb = items[0]?.display_url || items[0]?.thumbnail_url || null;
+    const first = items[0];
+    const thumb =
+      (typeof first["display_url"] === "string" ? first["display_url"] : null) ??
+      (typeof first["thumbnail_url"] === "string" ? first["thumbnail_url"] : null);
+
     return {
       title: `${username} — Instagram posts`,
       thumbnail: thumb,
@@ -375,8 +397,7 @@ async function tryInstagram120(url: string, type?: string): Promise<MediaResult 
   }
 }
 
-// ─── Cobalt (cobalt.tools) — free, no API key, handles all platforms ──────────
-// Open-source project: supports Instagram, TikTok, YouTube, Facebook, Twitter.
+// ─── Cobalt ───────────────────────────────────────────────────────────────────
 
 async function tryCobalt(url: string): Promise<MediaResult | null> {
   try {
@@ -384,7 +405,7 @@ async function tryCobalt(url: string): Promise<MediaResult | null> {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Accept": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify({
         url,
@@ -398,19 +419,24 @@ async function tryCobalt(url: string): Promise<MediaResult | null> {
       console.warn(`[cobalt] HTTP ${res.status}`);
       return null;
     }
-    const d = await res.json();
+    const d = await res.json() as {
+      status?: string;
+      url?: string;
+      filename?: string;
+      picker?: { url?: string; type?: string; thumb?: string }[];
+    };
     console.log("[cobalt] status:", d?.status);
 
     if (d?.status === "error") return null;
 
     const downloads: DownloadItem[] = [];
 
-    if (["stream", "redirect", "tunnel"].includes(d?.status) && d?.url) {
+    if (["stream", "redirect", "tunnel"].includes(d?.status ?? "") && d?.url) {
       const fname: string = d.filename ?? "";
       const format = fname.endsWith(".mp3") ? "mp3" : fname.endsWith(".jpg") ? "jpg" : "mp4";
-      downloads.push({ quality: "HD", url: d.url as string, format });
+      downloads.push({ quality: "HD", url: d.url, format });
     } else if (d?.status === "picker" && Array.isArray(d?.picker)) {
-      (d.picker as { url?: string; type?: string; thumb?: string }[])
+      d.picker
         .filter((item) => item?.url)
         .slice(0, 4)
         .forEach((item, i) => {
@@ -425,12 +451,10 @@ async function tryCobalt(url: string): Promise<MediaResult | null> {
     if (!downloads.length) return null;
 
     const pickerThumb =
-      d?.status === "picker"
-        ? ((d.picker as { thumb?: string }[])[0]?.thumb ?? null)
-        : null;
+      d?.status === "picker" ? (d.picker?.[0]?.thumb ?? null) : null;
 
     return {
-      title: (d.filename as string | undefined)?.replace(/\.[^.]+$/, "") ?? "Downloaded Content",
+      title: d.filename?.replace(/\.[^.]+$/, "") ?? "Downloaded Content",
       thumbnail: pickerThumb,
       downloads,
     };
@@ -440,7 +464,7 @@ async function tryCobalt(url: string): Promise<MediaResult | null> {
   }
 }
 
-// ─── Instagram free fallback — snapinsta.app (HTML-scrape, no key) ────────────
+// ─── SnapInsta ────────────────────────────────────────────────────────────────
 
 async function trySnapInsta(url: string): Promise<MediaResult | null> {
   try {
@@ -450,21 +474,20 @@ async function trySnapInsta(url: string): Promise<MediaResult | null> {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "X-Requested-With": "XMLHttpRequest",
-        "Referer": "https://snapinsta.app/",
-        "Origin": "https://snapinsta.app",
+        Referer: "https://snapinsta.app/",
+        Origin: "https://snapinsta.app",
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
       },
       body: body.toString(),
     });
     if (!res.ok) return null;
-    const d = await res.json();
+    const d = await res.json() as { data?: string };
     const html: string = typeof d?.data === "string" ? d.data : "";
     if (!html) return null;
 
     const downloads: DownloadItem[] = [];
 
-    // Video URLs inside href attributes
     const videoRe = /href="(https?:\/\/[^"]*\.mp4[^"]*)"/g;
     let m: RegExpExecArray | null;
     while ((m = videoRe.exec(html)) !== null && downloads.length < 3) {
@@ -475,7 +498,6 @@ async function trySnapInsta(url: string): Promise<MediaResult | null> {
       });
     }
 
-    // Image fallback
     if (!downloads.length) {
       const imgRe = /href="(https?:\/\/[^"]*\.jpg[^"]*)"/g;
       const im = imgRe.exec(html);
@@ -495,7 +517,7 @@ async function trySnapInsta(url: string): Promise<MediaResult | null> {
   }
 }
 
-// ─── Instagram: igram.world scraper (free, no key) ───────────────────────────
+// ─── Igram ────────────────────────────────────────────────────────────────────
 
 async function tryIgram(url: string): Promise<MediaResult | null> {
   try {
@@ -505,28 +527,30 @@ async function tryIgram(url: string): Promise<MediaResult | null> {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "X-Requested-With": "XMLHttpRequest",
-        "Referer": "https://igram.world/",
-        "Origin": "https://igram.world",
+        Referer: "https://igram.world/",
+        Origin: "https://igram.world",
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/javascript, */*; q=0.01",
+        Accept: "application/json, text/javascript, */*; q=0.01",
       },
       body: body.toString(),
     });
     if (!res.ok) return null;
-    const d = await res.json();
+    const d = await res.json() as { data?: string };
     const html: string = typeof d?.data === "string" ? d.data : "";
     if (!html) return null;
 
     const downloads: DownloadItem[] = [];
     const seen = new Set<string>();
 
-    // Video URLs — look for MP4 links or CDN download links
     const videoRe = /href="(https?:\/\/[^"]+)"/g;
     let m: RegExpExecArray | null;
     while ((m = videoRe.exec(html)) !== null && downloads.length < 4) {
       const link = m[1];
-      if (!seen.has(link) && (link.includes(".mp4") || link.includes("download") || link.includes("cdn"))) {
+      if (
+        !seen.has(link) &&
+        (link.includes(".mp4") || link.includes("download") || link.includes("cdn"))
+      ) {
         seen.add(link);
         downloads.push({
           quality: downloads.length === 0 ? "HD" : "SD",
@@ -536,7 +560,6 @@ async function tryIgram(url: string): Promise<MediaResult | null> {
       }
     }
 
-    // Image fallback
     if (!downloads.length) {
       const imgRe = /href="(https?:\/\/[^"]+\.(?:jpg|jpeg|png)[^"]*)"/;
       const im = imgRe.exec(html);
@@ -556,7 +579,7 @@ async function tryIgram(url: string): Promise<MediaResult | null> {
   }
 }
 
-// ─── Instagram: direct page scrape (no embed, uses mobile app headers) ────────
+// ─── Instagram Direct ─────────────────────────────────────────────────────────
 
 async function tryInstagramDirect(url: string): Promise<MediaResult | null> {
   const match = url.match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/);
@@ -591,22 +614,28 @@ async function tryInstagramDirect(url: string): Promise<MediaResult | null> {
 
       const text = await res.text();
 
-      // Try JSON parsing first
       if (expectJson) {
         try {
-          const data = JSON.parse(text);
+          const data = JSON.parse(text) as {
+            graphql?: { shortcode_media?: Record<string, unknown> };
+            items?: Record<string, unknown>[];
+            data?: { shortcode_media?: Record<string, unknown> };
+          };
           const media =
             data?.graphql?.shortcode_media ||
             data?.items?.[0] ||
             data?.data?.shortcode_media;
 
           if (media && typeof media === "object") {
-            const videoUrl: string | undefined =
-              media.video_url || media.playable_url;
-            const thumbUrl: string | undefined =
-              media.thumbnail_src || media.display_url;
-            const caption: string | undefined =
-              media.edge_media_to_caption?.edges?.[0]?.node?.text;
+            const videoUrl = typeof media["video_url"] === "string" ? media["video_url"] : undefined;
+            const thumbUrl =
+              typeof media["thumbnail_src"] === "string"
+                ? media["thumbnail_src"]
+                : typeof media["display_url"] === "string"
+                ? media["display_url"]
+                : undefined;
+            const edges = (media["edge_media_to_caption"] as { edges?: { node?: { text?: string } }[] } | undefined)?.edges;
+            const caption = edges?.[0]?.node?.text;
 
             if (videoUrl) {
               return {
@@ -624,11 +653,10 @@ async function tryInstagramDirect(url: string): Promise<MediaResult | null> {
             }
           }
         } catch {
-          // not JSON, fall through to regex
+          // not JSON, fall through
         }
       }
 
-      // Regex scrape of the page HTML
       const videoPatterns = [
         /"video_url":"(https:[^"]+)"/,
         /"playable_url":"(https:[^"]+)"/,
@@ -638,9 +666,9 @@ async function tryInstagramDirect(url: string): Promise<MediaResult | null> {
         /<meta[^>]+property="og:video(?::secure_url)?"[^>]+content="([^"]+)"/i,
       ];
       for (const p of videoPatterns) {
-        const m = text.match(p);
-        if (m?.[1]) {
-          const videoUrl = m[1].replace(/\\u0026/g, "&").replace(/\\(?!u)/g, "");
+        const m2 = text.match(p);
+        if (m2?.[1]) {
+          const videoUrl = m2[1].replace(/\\u0026/g, "&").replace(/\\(?!u)/g, "");
           return {
             title: "Instagram Video",
             thumbnail: null,
@@ -655,14 +683,14 @@ async function tryInstagramDirect(url: string): Promise<MediaResult | null> {
   return null;
 }
 
-// Instagram embed page scrape — multiple URL patterns + 7 regex variants
+// ─── Instagram Embed ──────────────────────────────────────────────────────────
+
 async function tryInstagramEmbed(url: string): Promise<MediaResult | null> {
   const match = url.match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/);
   if (!match) return null;
   const code = match[1];
   const isReel = /\/(reel|reels)\//.test(url);
 
-  // Try the URL type that matches the content first
   const embedUrls = isReel
     ? [
         `https://www.instagram.com/reel/${code}/embed/`,
@@ -683,7 +711,6 @@ async function tryInstagramEmbed(url: string): Promise<MediaResult | null> {
     Referer: "https://www.instagram.com/",
   };
 
-  // Instagram has changed the embed format several times — try all known patterns
   const videoPatterns = [
     /"video_url":"(https:[^"]+)"/,
     /"playable_url":"(https:[^"]+)"/,
@@ -704,7 +731,11 @@ async function tryInstagramEmbed(url: string): Promise<MediaResult | null> {
   ];
 
   function safeUnescape(raw: string): string {
-    try { return JSON.parse(`"${raw}"`); } catch { return raw; }
+    try {
+      return JSON.parse(`"${raw}"`);
+    } catch {
+      return raw;
+    }
   }
 
   for (const embedUrl of embedUrls) {
@@ -713,15 +744,17 @@ async function tryInstagramEmbed(url: string): Promise<MediaResult | null> {
       if (!res.ok) continue;
       const html = await res.text();
 
-      // Video
       for (const p of videoPatterns) {
-        const m = html.match(p);
-        if (m?.[1]) {
-          const videoUrl = safeUnescape(m[1]);
+        const m2 = html.match(p);
+        if (m2?.[1]) {
+          const videoUrl = safeUnescape(m2[1]);
           let thumbnail: string | null = null;
           for (const tp of thumbPatterns) {
             const tm = html.match(tp);
-            if (tm?.[1]) { thumbnail = safeUnescape(tm[1]); break; }
+            if (tm?.[1]) {
+              thumbnail = safeUnescape(tm[1]);
+              break;
+            }
           }
           return {
             title: "Instagram Video",
@@ -731,11 +764,10 @@ async function tryInstagramEmbed(url: string): Promise<MediaResult | null> {
         }
       }
 
-      // Image fallback
       for (const p of imgPatterns) {
-        const m = html.match(p);
-        if (m?.[1]) {
-          const imageUrl = safeUnescape(m[1]);
+        const m2 = html.match(p);
+        if (m2?.[1]) {
+          const imageUrl = safeUnescape(m2[1]);
           return {
             title: "Instagram Photo",
             thumbnail: imageUrl,
@@ -750,7 +782,7 @@ async function tryInstagramEmbed(url: string): Promise<MediaResult | null> {
   return null;
 }
 
-// ─── Facebook providers ───────────────────────────────────────────────────────
+// ─── Facebook ─────────────────────────────────────────────────────────────────
 
 async function tryFacebookRapid(url: string): Promise<MediaResult | null> {
   if (!RAPIDAPI_KEY) return null;
@@ -765,7 +797,11 @@ async function tryFacebookRapid(url: string): Promise<MediaResult | null> {
       }
     );
     if (!res.ok) return null;
-    const d = await res.json();
+    const d = await res.json() as {
+      links?: { Download_HD?: string; Download_SD?: string };
+      title?: string;
+      thumbnail?: string;
+    };
     if (!d?.links) return null;
     const downloads: DownloadItem[] = [];
     if (d.links.Download_HD) downloads.push({ quality: "HD", url: d.links.Download_HD, format: "mp4" });
@@ -777,7 +813,7 @@ async function tryFacebookRapid(url: string): Promise<MediaResult | null> {
   }
 }
 
-// ─── TikTok providers ─────────────────────────────────────────────────────────
+// ─── TikTok ───────────────────────────────────────────────────────────────────
 
 async function tryTikTokRapid(url: string): Promise<MediaResult | null> {
   if (!RAPIDAPI_KEY) return null;
@@ -792,7 +828,9 @@ async function tryTikTokRapid(url: string): Promise<MediaResult | null> {
       }
     );
     if (!res.ok) return null;
-    const d = await res.json();
+    const d = await res.json() as {
+      data?: { play?: string; wmplay?: string; music?: string; title?: string; cover?: string };
+    };
     const data = d?.data;
     if (!data?.play) return null;
     const downloads: DownloadItem[] = [
@@ -821,7 +859,16 @@ async function tryTikwmFree(url: string): Promise<MediaResult | null> {
       body: body.toString(),
     });
     if (!res.ok) return null;
-    const d = await res.json();
+    const d = await res.json() as {
+      data?: {
+        play?: string;
+        hdplay?: string;
+        wmplay?: string;
+        music?: string;
+        title?: string;
+        cover?: string;
+      };
+    };
     const data = d?.data;
     if (!data?.play) return null;
     const base = "https://www.tikwm.com";
@@ -840,7 +887,7 @@ async function tryTikwmFree(url: string): Promise<MediaResult | null> {
   }
 }
 
-// ─── YouTube providers ────────────────────────────────────────────────────────
+// ─── YouTube ──────────────────────────────────────────────────────────────────
 
 function extractVideoId(url: string): string | null {
   const patterns = [
@@ -868,28 +915,33 @@ async function tryYouTubeRapid(url: string): Promise<MediaResult | null> {
       }
     );
     if (!res.ok) return null;
-    const d = await res.json();
+    const d = await res.json() as {
+      videos?: { items?: { url: string; quality?: string; height?: number }[] };
+      audios?: { items?: { url: string }[] };
+      thumbnails?: { items?: { quality: string; url: string }[] };
+      title?: string;
+    };
     if (!d?.videos?.items?.length) return null;
 
     const downloads: DownloadItem[] = [];
-    const videos = [...(d.videos.items as { url: string; quality?: string; height?: number }[])]
+    const videos = [...(d.videos.items)]
       .filter((v) => v.url)
       .sort((a, b) => (b.height || 0) - (a.height || 0))
       .slice(0, 3);
 
-    videos.forEach((v) => downloads.push({ quality: v.quality || `${v.height || ""}p`, url: v.url, format: "mp4" }));
+    videos.forEach((v) =>
+      downloads.push({ quality: v.quality || `${v.height || ""}p`, url: v.url, format: "mp4" })
+    );
 
-    const audios = (d.audios?.items as { url: string }[] | undefined) || [];
+    const audios = d.audios?.items ?? [];
     if (audios[0]?.url) downloads.push({ quality: "Audio Only", url: audios[0].url, format: "mp3" });
 
     const videoId = extractVideoId(url);
     const thumb =
-      (d.thumbnails?.items as { quality: string; url: string }[] | undefined)?.find(
-        (t) => t.quality === "maxresdefault"
-      )?.url ||
+      d.thumbnails?.items?.find((t) => t.quality === "maxresdefault")?.url ||
       (videoId ? `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg` : null);
 
-    return { title: d.title || "YouTube Video", thumbnail: thumb, downloads };
+    return { title: d.title || "YouTube Video", thumbnail: thumb ?? null, downloads };
   } catch {
     return null;
   }
@@ -924,8 +976,8 @@ export async function POST(req: NextRequest) {
   let url: string;
   let requestedQuality: string | null = null;
   try {
-    const body = await req.json();
-    url = (body?.url ?? "").trim();
+    const body = await req.json() as { url?: unknown; quality?: unknown };
+    url = (typeof body?.url === "string" ? body.url : "").trim();
     requestedQuality = normalizeQuality(body?.quality);
   } catch {
     return NextResponse.json({ success: false, error: "Invalid JSON body." }, { status: 400 });
@@ -935,7 +987,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "URL is required." }, { status: 400 });
   }
 
-  // Basic URL validation
   try {
     new URL(url);
   } catch {
@@ -947,8 +998,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error:
-          "Unsupported platform. Supported: Instagram, Facebook, TikTok, YouTube, Pinterest.",
+        error: "Unsupported platform. Supported: Instagram, Facebook, TikTok, YouTube, Pinterest.",
       },
       { status: 400 }
     );
@@ -956,7 +1006,6 @@ export async function POST(req: NextRequest) {
 
   const { platform, type } = detected;
 
-  // Cache check
   const cacheKey = `${platform}:${url}`;
   const cached = fromCache(cacheKey);
   if (cached) {
@@ -968,46 +1017,46 @@ export async function POST(req: NextRequest) {
   switch (platform) {
     case "instagram":
       result = await tryProviders("instagram", [
-        { name: "igram",             fn: () => tryIgram(url) },
-        { name: "direct-page",       fn: () => tryInstagramDirect(url) },
-        { name: "cobalt",            fn: () => tryCobalt(url) },
-        { name: "rapidapi-social",   fn: () => trySocialDownloader(url) },
-        { name: "rapidapi-ig120",    fn: () => tryInstagram120(url, type) },
-        { name: "rapidapi-ig",       fn: () => tryInstagramRapid(url) },
-        { name: "snapinsta",         fn: () => trySnapInsta(url) },
-        { name: "embed-scrape",      fn: () => tryInstagramEmbed(url) },
+        { name: "igram",           fn: () => tryIgram(url) },
+        { name: "direct-page",     fn: () => tryInstagramDirect(url) },
+        { name: "cobalt",          fn: () => tryCobalt(url) },
+        { name: "rapidapi-social", fn: () => trySocialDownloader(url) },
+        { name: "rapidapi-ig120",  fn: () => tryInstagram120(url, type) },
+        { name: "rapidapi-ig",     fn: () => tryInstagramRapid(url) },
+        { name: "snapinsta",       fn: () => trySnapInsta(url) },
+        { name: "embed-scrape",    fn: () => tryInstagramEmbed(url) },
       ]);
       break;
 
     case "facebook":
       result = await tryProviders("facebook", [
-        { name: "cobalt",            fn: () => tryCobalt(url) },
-        { name: "rapidapi-fb",       fn: () => tryFacebookRapid(url) },
-        { name: "rapidapi-social",   fn: () => trySocialDownloader(url) },
+        { name: "cobalt",          fn: () => tryCobalt(url) },
+        { name: "rapidapi-fb",     fn: () => tryFacebookRapid(url) },
+        { name: "rapidapi-social", fn: () => trySocialDownloader(url) },
       ]);
       break;
 
     case "tiktok":
       result = await tryProviders("tiktok", [
-        { name: "tikwm-free",        fn: () => tryTikwmFree(url) },
-        { name: "cobalt",            fn: () => tryCobalt(url) },
-        { name: "rapidapi-tiktok",   fn: () => tryTikTokRapid(url) },
-        { name: "rapidapi-social",   fn: () => trySocialDownloader(url) },
+        { name: "tikwm-free",      fn: () => tryTikwmFree(url) },
+        { name: "cobalt",          fn: () => tryCobalt(url) },
+        { name: "rapidapi-tiktok", fn: () => tryTikTokRapid(url) },
+        { name: "rapidapi-social", fn: () => trySocialDownloader(url) },
       ]);
       break;
 
     case "youtube":
       result = await tryProviders("youtube", [
-        { name: "cobalt",            fn: () => tryCobalt(url) },
-        { name: "rapidapi-yt",       fn: () => tryYouTubeRapid(url) },
-        { name: "rapidapi-social",   fn: () => trySocialDownloader(url) },
+        { name: "cobalt",          fn: () => tryCobalt(url) },
+        { name: "rapidapi-yt",     fn: () => tryYouTubeRapid(url) },
+        { name: "rapidapi-social", fn: () => trySocialDownloader(url) },
       ]);
       break;
 
     case "pinterest":
       result = await tryProviders("pinterest", [
-        { name: "rapidapi-social",   fn: () => trySocialDownloader(url) },
-        { name: "cobalt",            fn: () => tryCobalt(url) },
+        { name: "rapidapi-social", fn: () => trySocialDownloader(url) },
+        { name: "cobalt",          fn: () => tryCobalt(url) },
       ]);
       break;
 
@@ -1058,8 +1107,8 @@ export async function POST(req: NextRequest) {
     thumbnail: result.thumbnail,
     download: selectedDownloads,
     urls,
-    // Legacy fields — keep for backward compat with existing DownloaderPage
-    videoUrl: selectedDownloads.find((d) => d.format !== "jpg" && d.format !== "png")?.url ?? null,
+    videoUrl:
+      selectedDownloads.find((d) => d.format !== "jpg" && d.format !== "png")?.url ?? null,
     imageUrl:
       result.thumbnail ??
       selectedDownloads.find((d) => d.format === "jpg" || d.format === "png")?.url ??
