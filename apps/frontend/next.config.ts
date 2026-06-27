@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Expose RAPIDAPI_KEY to server-side API routes only (not the browser bundle)
+  // Expose SCRAPE_CREATORS_API_KEY to server-side API routes only (not the browser bundle)
   env: {
-    RAPIDAPI_KEY: process.env.RAPIDAPI_KEY ?? "",
+    SCRAPE_CREATORS_API_KEY: process.env.SCRAPE_CREATORS_API_KEY ?? "",
   },
 
   // Proxy /backend/* requests to the NestJS backend during development

@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
  *  1. If BACKEND_URL is set, it forwards the request to the NestJS backend
  *     (POST /api/v1/download) and returns the response as-is.
  *  2. Otherwise, it falls back to the local Next.js download handler at
- *     /api/download (which uses RapidAPI directly).
+ *     /api/download (which uses local scraping and ScrapeCreators directly).
  *
  * This lets both apps work in standalone mode AND as an integrated monorepo.
  */

@@ -7,13 +7,13 @@ export type SupportedPlatform =
 
 const PLATFORM_PATTERNS: Record<SupportedPlatform, RegExp[]> = {
   instagram: [
-    /^https?:\/\/(www\.)?instagram\.com\/(p|reel|tv|stories)\/[\w-]+/,
+    /^https?:\/\/(www\.)?instagram\.com\/(p|reels?|tv|stories)\/[\w-]+/,
     /^https?:\/\/instagr\.am\//,
   ],
   facebook: [
     /^https?:\/\/(www\.|m\.)?facebook\.com\/.*\/videos\//,
     /^https?:\/\/(www\.|m\.)?facebook\.com\/watch/,
-    /^https?:\/\/(www\.|m\.)?facebook\.com\/reel\//,
+    /^https?:\/\/(www\.|m\.)?facebook\.com\/reels?(\/|$)/,
     /^https?:\/\/fb\.watch\//,
   ],
   twitter: [
